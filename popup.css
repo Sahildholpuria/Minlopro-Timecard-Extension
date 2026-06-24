@@ -684,6 +684,16 @@ textarea.input-flat {
   background: rgba(239, 68, 68, 0.1);
 }
 
+.icon-btn.edit-entry-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .icon-btn.edit-entry-btn:hover {
+  color: var(--text-main);
+  background: rgba(15, 23, 42, 0.08);
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;

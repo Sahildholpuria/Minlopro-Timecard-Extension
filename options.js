@@ -1,4 +1,4 @@
-// options.js - Salesforce Timecard Logger Options Dashboard
+// options.js - Minlopro Timecard Extension Options Dashboard
 
 // DOM Pane Elements
 const navItems = document.querySelectorAll('.nav-item');

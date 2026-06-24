@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "MLP Salesforce Timecard Logger",
+  "name": "Minlopro Timecard Extension",
   "version": "1.0.0",
   "description": "Log and submit weekly timecards directly into Salesforce objects (Timecard__c and child entries) from a premium popup interface.",
   "permissions": [

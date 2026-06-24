@@ -1,27 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MLP Timecard Logger</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Minlopro Timecard Extension</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
       <div class="logo-area">
         <div class="logo-dot"></div>
-        <h1>MLP Timecard</h1>
+        <h1>Minlopro Timecard</h1>
       </div>
       <div class="header-actions">
         <div class="status-indicator" id="connection-status">
           <span class="status-dot disconnected"></span>
           <span class="status-text">Disconnected</span>
         </div>
-        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme" style="display: inline-flex; align-items: center; justify-content: center; height: 24px; width: 24px; padding: 0; color: var(--text-muted);">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme"
+          style="display: inline-flex; align-items: center; justify-content: center; height: 24px; width: 24px; padding: 0; color: var(--text-muted);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="feather feather-sun">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
         </button>
       </div>
     </header>
@@ -29,15 +46,27 @@
     <!-- Navigation Tabs -->
     <nav class="app-tabs">
       <button class="tab-btn active" data-tab="log-time">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
         Log Time
       </button>
       <button class="tab-btn" data-tab="history">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
         History
       </button>
       <button class="tab-btn" data-tab="settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
         Settings
       </button>
     </nav>
@@ -75,9 +104,9 @@
         <!-- 2. Timecard Entry Form (Locked until Timecard selected) -->
         <div id="entry-form-container" class="entry-form-card disabled-panel">
           <div class="panel-lock-overlay">Select a timecard above to log entries</div>
-          
+
           <h3>Log New Weekly Entry</h3>
-          
+
           <div class="form-group">
             <label for="entry-project">Project</label>
             <div class="project-search-container">
@@ -147,10 +176,15 @@
             </div>
           </div>
 
-          <button id="save-entry-btn" class="btn btn-primary btn-block">
-            <span>Save Timecard Entry</span>
-            <div class="spinner btn-spinner hidden"></div>
-          </button>
+          <div class="entry-actions-group" style="display: flex; gap: 8px; margin-top: 10px;">
+            <button id="save-entry-btn" class="btn btn-primary btn-block">
+              <span>Save Timecard Entry</span>
+              <div class="spinner btn-spinner hidden"></div>
+            </button>
+            <button id="cancel-edit-btn" class="btn btn-secondary hidden" style="flex-shrink: 0; min-width: 80px;">
+              Cancel
+            </button>
+          </div>
         </div>
 
         <!-- 3. Current Logged Entries List -->
@@ -164,13 +198,14 @@
         <!-- 4. Sentiment & Submit -->
         <div id="sentiment-submit-container" class="sentiment-form-card disabled-panel">
           <h3>Submit Timecard</h3>
-          
+
           <div class="form-group">
             <label for="sentiment-select">Workload Weekly Sentiment</label>
             <div class="custom-select-wrapper">
               <select id="sentiment-select">
                 <option value="">-- Select Sentiment --</option>
-                <option value="Ready for more – I have capacity to take on more">🔵 Ready for more – I have capacity</option>
+                <option value="Ready for more – I have capacity to take on more">🔵 Ready for more – I have capacity
+                </option>
                 <option value="Balanced – I’m good with the workload">🟢 Balanced – I’m good</option>
                 <option value="Pushing through – Busy but manageable">🟡 Pushing through – Busy but manageable</option>
                 <option value="Overwhelmed – I’m stretched too thin">🔴 Overwhelmed – Stretched too thin</option>
@@ -180,7 +215,8 @@
 
           <div class="form-group">
             <label for="feedback-notes">Workload Feedback / Notes</label>
-            <textarea id="feedback-notes" rows="2" placeholder="Any comments on workload, blockers or highlights..."></textarea>
+            <textarea id="feedback-notes" rows="2"
+              placeholder="Any comments on workload, blockers or highlights..."></textarea>
           </div>
 
           <button id="submit-timecard-btn" class="btn btn-indigo btn-block" style="margin-top: 12px;">
@@ -206,7 +242,7 @@
       <!-- Tab 3: Settings -->
       <section id="settings" class="tab-pane">
         <h2>Salesforce Connection</h2>
-        
+
         <div class="settings-card">
           <h3>Authentication Method</h3>
           <div class="toggle-group">
@@ -243,7 +279,7 @@
             <h3>Object Field Mappings</h3>
             <button id="auto-detect-mappings-btn" class="btn btn-secondary btn-xs">Auto-Detect</button>
           </div>
-          
+
           <div class="form-grid">
             <div class="form-group">
               <label>Parent SObject</label>
@@ -309,4 +345,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>

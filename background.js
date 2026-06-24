@@ -1,8 +1,8 @@
-// background.js - Salesforce Timecard Logger Service Worker
+// background.js - Minlopro Timecard Extension Service Worker
 
 // Keep track of active connections
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('MLP Salesforce Timecard Logger installed successfully.');
+  console.log('Minlopro Timecard Extension installed successfully.');
   // Set default settings if not exists
   chrome.storage.local.get(['sfSettings', 'fieldMappings'], (result) => {
     if (!result.sfSettings) {

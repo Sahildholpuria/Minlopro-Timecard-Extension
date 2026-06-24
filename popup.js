@@ -1,4 +1,4 @@
-// popup.js - Salesforce Timecard Logger Popup Logic (Redesigned Flow)
+// popup.js - Minlopro Timecard Extension Popup Logic (Redesigned Flow)
 
 // State Management
 let state = {
@@ -19,6 +19,8 @@ let state = {
   selectedProjectName: '',  // Chosen Project Name
   selectedRoleId: '',       // Chosen Role ID
   selectedRoleName: '',     // Chosen Role Name
+  editMode: false,          // Edit Mode indicator
+  editingGroupIds: null,    // Active IDs of entries under edit
   
   projectReferencedSObject: 'Project__c',
   roleReferencedSObject: 'Project_Role__c',
@@ -97,6 +99,7 @@ function initDOMElements() {
   DOM.bubbleInputs = document.querySelectorAll('.bubble-input');
   DOM.entryTotalHours = document.getElementById('entry-total-hours');
   DOM.saveEntryBtn = document.getElementById('save-entry-btn');
+  DOM.cancelEditBtn = document.getElementById('cancel-edit-btn');
   
   // Logged list
   DOM.loggedEntriesContainer = document.getElementById('logged-entries-container');
@@ -166,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Save Entry click
   DOM.saveEntryBtn.addEventListener('click', saveTimecardEntry);
+  DOM.cancelEditBtn.addEventListener('click', cancelEditing);
 
   // Submit Timecard click
   DOM.submitTimecardBtn.addEventListener('click', submitTimecardRecord);
@@ -919,6 +923,9 @@ function renderLoggedEntriesList(records) {
       <div class="entry-item-actions">
         <span class="entry-item-hours">${g.total.toFixed(2)}h</span>
         ${state.selectedTimecard.Status === 'Draft' ? `
+          <button class="icon-btn edit-entry-btn" title="Edit Entry Group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+          </button>
           <button class="icon-btn delete-entry-btn" title="Delete Entry Group">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
@@ -926,7 +933,12 @@ function renderLoggedEntriesList(records) {
       </div>
     `;
 
-    // Wire up Delete button
+    // Wire up buttons
+    const editBtn = card.querySelector('.edit-entry-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => startEditingEntryGroup(g));
+    }
+
     const delBtn = card.querySelector('.delete-entry-btn');
     if (delBtn) {
       delBtn.addEventListener('click', () => deleteEntryGroup(g.ids));
@@ -940,6 +952,81 @@ function renderLoggedEntriesList(records) {
 function calculateTimecardTotal(records) {
   const sum = records.reduce((a, b) => a + b.Hours, 0.0);
   DOM.cardTotalHours.innerText = `${sum.toFixed(2)} hrs`;
+}
+
+// Start editing a logged entry group
+function startEditingEntryGroup(g) {
+  state.editMode = true;
+  state.editingGroupIds = g.ids;
+
+  // Set Project values
+  state.selectedProjectId = g.projectId;
+  state.selectedProjectName = g.projectName;
+  DOM.entryProject.value = g.projectName;
+
+  // Set Role values
+  state.selectedRoleId = g.roleId;
+  state.selectedRoleName = g.roleName;
+  DOM.entryRole.value = g.roleName;
+  DOM.entryRole.removeAttribute('disabled');
+
+  // Fill details
+  DOM.entryDescription.value = g.description || '';
+  DOM.entryNonBillable.checked = g.nonBillable || false;
+
+  // Reset hours array
+  state.entryHours = [0, 0, 0, 0, 0, 0, 0];
+
+  // Map hours from state.currentEntries for this group
+  const groupEntries = state.currentEntries.filter(entry => 
+    entry.ProjectId === g.projectId &&
+    entry.RoleId === g.roleId &&
+    entry.Description === g.description &&
+    entry.NonBillable === g.nonBillable
+  );
+
+  groupEntries.forEach(entry => {
+    const entryDate = new Date(entry.Date);
+    // Find index of day (0 = Mon, 6 = Sun)
+    // Since week starts on Monday, map accordingly
+    let dayIdx = entryDate.getDay() - 1;
+    if (dayIdx < 0) dayIdx = 6; // Sunday
+    
+    if (dayIdx >= 0 && dayIdx <= 6) {
+      state.entryHours[dayIdx] = entry.Hours;
+    }
+  });
+
+  // Populate UI hour inputs
+  DOM.bubbleInputs.forEach(input => {
+    const dayIdx = parseInt(input.dataset.day);
+    const hrs = state.entryHours[dayIdx];
+    input.value = hrs > 0 ? hrs : '';
+  });
+
+  // Update sum indicator
+  const sumHrs = state.entryHours.reduce((a, b) => a + b, 0.0);
+  DOM.entryTotalHours.innerText = sumHrs.toFixed(2);
+
+  // Update Save button UI to Edit mode
+  DOM.saveEntryBtn.querySelector('span').innerText = 'Update Timecard Entry';
+  DOM.cancelEditBtn.classList.remove('hidden');
+
+  // Smooth scroll to top/entry form so user notices they are editing
+  DOM.entryFormContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Cancel editing and reset form
+function cancelEditing() {
+  state.editMode = false;
+  state.editingGroupIds = null;
+
+  // Restore Save button UI
+  DOM.saveEntryBtn.querySelector('span').innerText = 'Save Timecard Entry';
+  DOM.cancelEditBtn.classList.add('hidden');
+
+  // Clear form
+  clearEntryForm();
 }
 
 // Save Entry records to Salesforce
@@ -967,6 +1054,12 @@ async function saveTimecardEntry() {
         MOCK_DATA.entries[state.selectedTimecardId] = [];
       }
       
+      if (state.editMode && state.editingGroupIds) {
+        MOCK_DATA.entries[state.selectedTimecardId] = MOCK_DATA.entries[state.selectedTimecardId].filter(
+          entry => !state.editingGroupIds.includes(entry.Id)
+        );
+      }
+      
       state.entryHours.forEach((hrs, dayIdx) => {
         if (hrs > 0) {
           const entryDate = new Date(weekStart);
@@ -986,9 +1079,14 @@ async function saveTimecardEntry() {
         }
       });
 
+      const wasEdit = state.editMode;
       setSaveLoading(false);
-      showToast('Entry saved successfully!', 'success');
-      clearEntryForm();
+      showToast(wasEdit ? 'Entry updated successfully!' : 'Entry saved successfully!', 'success');
+      if (wasEdit) {
+        cancelEditing();
+      } else {
+        clearEntryForm();
+      }
       loadLoggedEntries();
     }, 1000);
     return;
@@ -997,8 +1095,22 @@ async function saveTimecardEntry() {
   // Real Salesforce SObject tree batch insert
   try {
     const cObj = state.fieldMappings.childObject || 'Timecard_Entry__c';
-    const entryRecords = [];
     
+    // If in Edit Mode, delete existing records first
+    if (state.editMode && state.editingGroupIds && state.editingGroupIds.length > 0) {
+      updateStatus('syncing', 'Updating entries...');
+      for (let id of state.editingGroupIds) {
+        const delRes = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${cObj}/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.sfAccessToken}` }
+        });
+        if (!delRes.ok) {
+          console.warn(`Failed to delete old entry ID ${id} during update`);
+        }
+      }
+    }
+
+    const entryRecords = [];
     state.entryHours.forEach((hrs, dayIdx) => {
       if (hrs > 0) {
         const entryDate = new Date(weekStart);
@@ -1042,14 +1154,21 @@ async function saveTimecardEntry() {
       }
     }
 
+    const wasEdit = state.editMode;
     setSaveLoading(false);
-    showToast('Entry saved to Salesforce!', 'success');
-    clearEntryForm();
+    showToast(wasEdit ? 'Entry updated in Salesforce!' : 'Entry saved to Salesforce!', 'success');
+    if (wasEdit) {
+      cancelEditing();
+    } else {
+      clearEntryForm();
+    }
     await loadLoggedEntries();
+    updateStatus('connected', 'Connected');
   } catch (error) {
     console.error('Error saving entry:', error);
     showToast(`Failed to save entry: ${error.message}`, 'error');
     setSaveLoading(false);
+    updateStatus('connected', 'Error');
   }
 }
 
