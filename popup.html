@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLP Timecard Logger</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-dot"></div>
+        <h1>MLP Timecard</h1>
+      </div>
+      <div class="status-indicator" id="connection-status">
+        <span class="status-dot disconnected"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="app-tabs">
+      <button class="tab-btn active" data-tab="log-time">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Log Time
+      </button>
+      <button class="tab-btn" data-tab="history">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="app-content">
+      <!-- Tab 1: Log Time -->
+      <section id="log-time" class="tab-pane active">
+        <!-- 1. Timecard Selection -->
+        <div class="selection-card">
+          <div class="form-group">
+            <label for="timecard-select">Select Salesforce Timecard</label>
+            <div class="custom-select-wrapper">
+              <select id="timecard-select" class="input-flat">
+                <option value="">-- Load & Select Timecard --</option>
+              </select>
+            </div>
+          </div>
+          <div id="selected-timecard-info" class="timecard-info-card hidden">
+            <div class="info-row">
+              <span class="info-label">Week Start:</span>
+              <strong id="card-week-date">-</strong>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Status:</span>
+              <span id="card-status-badge" class="badge draft">Draft</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Logged:</span>
+              <strong id="card-total-hours">0.00 hrs</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Timecard Entry Form (Locked until Timecard selected) -->
+        <div id="entry-form-container" class="entry-form-card disabled-panel">
+          <div class="panel-lock-overlay">Select a timecard above to log entries</div>
+          
+          <h3>Log New Weekly Entry</h3>
+          
+          <div class="form-group">
+            <label for="entry-project">Project</label>
+            <div class="project-search-container">
+              <input type="text" id="entry-project" class="input-flat" placeholder="Search Projects...">
+              <div class="autocomplete-list hidden" id="entry-project-list"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="entry-role">Project Role</label>
+            <div class="role-search-container">
+              <input type="text" id="entry-role" class="input-flat" placeholder="Select Project first..." disabled>
+              <div class="autocomplete-list hidden" id="entry-role-list"></div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="entry-description">Task Description</label>
+              <input type="text" id="entry-description" class="input-flat" placeholder="What task did you work on?">
+            </div>
+            <div class="form-group flex-row-align">
+              <label class="checkbox-label">
+                <input type="checkbox" id="entry-non-billable">
+                Non Billable
+              </label>
+            </div>
+          </div>
+
+          <!-- Weekly Daily Hours Bubbles -->
+          <div class="hours-entry-bubbles">
+            <label class="section-label">Log Weekly Hours</label>
+            <div class="bubbles-row">
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-0">Mon</span>
+                <input type="number" class="bubble-input" data-day="0" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-1">Tue</span>
+                <input type="number" class="bubble-input" data-day="1" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-2">Wed</span>
+                <input type="number" class="bubble-input" data-day="2" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-3">Thu</span>
+                <input type="number" class="bubble-input" data-day="3" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-4">Fri</span>
+                <input type="number" class="bubble-input" data-day="4" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-5">Sat</span>
+                <input type="number" class="bubble-input" data-day="5" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+              <div class="bubble-input-group">
+                <span class="bubble-label" id="day-lbl-6">Sun</span>
+                <input type="number" class="bubble-input" data-day="6" min="0" max="24" step="0.25" placeholder="-">
+              </div>
+            </div>
+            <div class="entry-total-indicator">
+              <span>Entry Total:</span>
+              <strong id="entry-total-hours">0.00</strong>
+              <span>hrs</span>
+            </div>
+          </div>
+
+          <button id="save-entry-btn" class="btn btn-primary btn-block">
+            <span>Save Timecard Entry</span>
+            <div class="spinner btn-spinner hidden"></div>
+          </button>
+        </div>
+
+        <!-- 3. Current Logged Entries List -->
+        <div id="logged-entries-container" class="logged-entries-card disabled-panel">
+          <h3>Logged Entries for Selected Week</h3>
+          <div id="logged-entries-list" class="entries-list">
+            <div class="empty-state">No entries logged yet for this week.</div>
+          </div>
+        </div>
+
+        <!-- 4. Sentiment & Submit -->
+        <div id="sentiment-submit-container" class="sentiment-form-card disabled-panel">
+          <h3>Submit Timecard</h3>
+          
+          <div class="form-group">
+            <label for="sentiment-select">Workload Weekly Sentiment</label>
+            <div class="custom-select-wrapper">
+              <select id="sentiment-select">
+                <option value="">-- Select Sentiment --</option>
+                <option value="Ready for more – I have capacity to take on more">🔵 Ready for more – I have capacity</option>
+                <option value="Balanced – I’m good with the workload">🟢 Balanced – I’m good</option>
+                <option value="Pushing through – Busy but manageable">🟡 Pushing through – Busy but manageable</option>
+                <option value="Overwhelmed – I’m stretched too thin">🔴 Overwhelmed – Stretched too thin</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback-notes">Workload Feedback / Notes</label>
+            <textarea id="feedback-notes" rows="2" placeholder="Any comments on workload, blockers or highlights..."></textarea>
+          </div>
+
+          <button id="submit-timecard-btn" class="btn btn-indigo btn-block" style="margin-top: 12px;">
+            <span>Submit Timecard Record</span>
+            <div class="spinner btn-spinner hidden"></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Tab 2: History -->
+      <section id="history" class="tab-pane">
+        <div class="pane-header">
+          <h2>Recent Timecards</h2>
+          <button id="refresh-history-btn" class="btn btn-secondary btn-sm">Refresh</button>
+        </div>
+        <div id="history-list" class="history-list-container">
+          <div class="empty-state">
+            <p>No recent timecards found. Connect to Salesforce to fetch history.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Settings -->
+      <section id="settings" class="tab-pane">
+        <h2>Salesforce Connection</h2>
+        
+        <div class="settings-card">
+          <h3>Authentication Method</h3>
+          <div class="toggle-group">
+            <button class="toggle-btn active" id="auth-cookie-btn">Auto Cookie</button>
+            <button class="toggle-btn" id="auth-manual-btn">Token / OAuth</button>
+          </div>
+
+          <!-- Cookie login container -->
+          <div id="cookie-config-container" class="config-subpane">
+            <p class="config-desc">Attempts to extract active Salesforce sessions from your logged-in browser tabs.</p>
+            <div class="form-group">
+              <label for="sf-instance-domain">Salesforce Domain / Instance URL</label>
+              <input type="text" id="sf-instance-domain" placeholder="e.g. mycompany.my.salesforce.com">
+            </div>
+            <button id="detect-session-btn" class="btn btn-secondary btn-block">Detect & Test Session</button>
+          </div>
+
+          <!-- Manual / OAuth connection -->
+          <div id="manual-config-container" class="config-subpane hidden">
+            <div class="form-group">
+              <label for="sf-endpoint">Salesforce Instance URL</label>
+              <input type="text" id="sf-endpoint" placeholder="https://mycompany.my.salesforce.com">
+            </div>
+            <div class="form-group">
+              <label for="sf-access-token">Session ID / Access Token</label>
+              <input type="password" id="sf-access-token" placeholder="Paste Salesforce Session ID / Token">
+            </div>
+            <button id="save-manual-btn" class="btn btn-primary btn-block">Save & Connect</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <h3>Object Field Mappings</h3>
+            <button id="auto-detect-mappings-btn" class="btn btn-secondary btn-xs">Auto-Detect</button>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Parent SObject</label>
+              <input type="text" id="map-parent-object" value="Timecard__c">
+            </div>
+            <div class="form-group">
+              <label>Child SObject</label>
+              <input type="text" id="map-child-object" value="Timecard_Entry__c">
+            </div>
+            <div class="form-group">
+              <label>Parent: Resource Lookup</label>
+              <input type="text" id="map-parent-resource" value="Timecard_For__c">
+            </div>
+            <div class="form-group">
+              <label>Parent: Week Start</label>
+              <input type="text" id="map-parent-week" value="Week_of__c">
+            </div>
+            <div class="form-group">
+              <label>Parent: Status</label>
+              <input type="text" id="map-parent-status" value="Status__c">
+            </div>
+            <div class="form-group">
+              <label>Parent: Sentiment</label>
+              <input type="text" id="map-parent-sentiment" value="Workload_Weekly_Sentiment__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Timecard Lookup</label>
+              <input type="text" id="map-child-parent" value="Timecard__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Project Lookup</label>
+              <input type="text" id="map-child-project" value="Project__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Role Lookup</label>
+              <input type="text" id="map-child-role" value="Project_Role__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Date</label>
+              <input type="text" id="map-child-date" value="Date__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Hours</label>
+              <input type="text" id="map-child-hours" value="Hours__c">
+            </div>
+            <div class="form-group">
+              <label>Child: Description</label>
+              <input type="text" id="map-child-desc" value="Task_Description__c">
+            </div>
+          </div>
+          <button id="save-mappings-btn" class="btn btn-secondary btn-block">Save Field Mappings</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

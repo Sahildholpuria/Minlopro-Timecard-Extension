@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "MLP Salesforce Timecard Logger",
+  "version": "1.0.0",
+  "description": "Log and submit weekly timecards directly into Salesforce objects (Timecard__c and child entries) from a premium popup interface.",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.force.com/*",
+    "https://*.salesforce.com/*",
+    "https://*.my.salesforce.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

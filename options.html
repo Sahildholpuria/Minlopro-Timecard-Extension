@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salesforce Timecard Logger Options</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-dot"></div>
+        <h2>MLP Timecard</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-pane="connection">Salesforce Connection</button>
+        <button class="nav-item" data-pane="mappings">Field Mapping Config</button>
+        <button class="nav-item" data-pane="diagnostics">Diagnostics & Cache</button>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="version-label">v1.0.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-content">
+      <!-- Connection Pane -->
+      <section id="connection" class="config-pane active">
+        <div class="pane-header">
+          <h1>Salesforce Connection Settings</h1>
+          <p>Configure how the extension connects and authenticates with your Salesforce instance.</p>
+        </div>
+
+        <div class="card">
+          <h2>Authentication Mode</h2>
+          <div class="input-row">
+            <label class="radio-label">
+              <input type="radio" name="auth-mode" value="cookie" checked>
+              <div class="radio-card">
+                <h3>Automatic Cookie Capture</h3>
+                <p>Retrieves your active Lightning/Classic browser sessions automatically.</p>
+              </div>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="auth-mode" value="manual">
+              <div class="radio-card">
+                <h3>Manual Access Token</h3>
+                <p>Provide a static Salesforce instance URL and Session ID / Access Token manually.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="card" id="cookie-settings-card">
+          <h2>Domain Capture Pattern</h2>
+          <p class="description">Optional: specify the domain pattern of your Salesforce instance (e.g. <code>mycompany.my.salesforce.com</code>) to filter cookie lookup.</p>
+          <div class="form-group">
+            <label for="domain-pattern">Salesforce Instance Domain</label>
+            <input type="text" id="domain-pattern" placeholder="e.g. mycompany.my.salesforce.com">
+          </div>
+        </div>
+
+        <div class="card hidden" id="manual-settings-card">
+          <h2>Manual Access Credentials</h2>
+          <div class="form-group">
+            <label for="sf-instance-url">Salesforce Instance URL</label>
+            <input type="text" id="sf-instance-url" placeholder="https://mycompany.my.salesforce.com">
+          </div>
+          <div class="form-group">
+            <label for="sf-token">Access Token / Session ID</label>
+            <input type="password" id="sf-token" placeholder="Paste your Salesforce API token here...">
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button id="save-connection-btn" class="btn btn-primary">Save Connection Settings</button>
+        </div>
+      </section>
+
+      <!-- Mappings Pane -->
+      <section id="mappings" class="config-pane">
+        <div class="pane-header">
+          <h1>SObject Field Mappings</h1>
+          <p>Align the extension form inputs with the API names of your Salesforce custom objects.</p>
+        </div>
+
+        <div class="card">
+          <h2>Object Details</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="opt-parent-obj">Parent SObject API Name</label>
+              <input type="text" id="opt-parent-obj" value="Timecard__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-obj">Child SObject API Name</label>
+              <input type="text" id="opt-child-obj" value="Timecard_Entry__c">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Parent Fields (`Timecard__c`)</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="opt-parent-resource">Resource Lookup Field</label>
+              <input type="text" id="opt-parent-resource" value="Timecard_For__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-parent-week">Week Start Date Field</label>
+              <input type="text" id="opt-parent-week" value="Week_of__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-parent-status">Status Field</label>
+              <input type="text" id="opt-parent-status" value="Status__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-parent-sentiment">Workload Sentiment Field</label>
+              <input type="text" id="opt-parent-sentiment" value="Workload_Weekly_Sentiment__c">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Child Entry Fields (`Timecard_Entry__c`)</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="opt-child-parent">Parent Lookup Field</label>
+              <input type="text" id="opt-child-parent" value="Timecard__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-project">Project Lookup Field</label>
+              <input type="text" id="opt-child-project" value="Project__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-role">Project Role Lookup Field</label>
+              <input type="text" id="opt-child-role" value="Project_Role__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-date">Date Field</label>
+              <input type="text" id="opt-child-date" value="Date__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-hours">Hours Logged Field</label>
+              <input type="text" id="opt-child-hours" value="Hours__c">
+            </div>
+            <div class="form-group">
+              <label for="opt-child-desc">Task Description Field</label>
+              <input type="text" id="opt-child-desc" value="Task_Description__c">
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button id="save-mappings-btn" class="btn btn-primary">Save Mapping Configuration</button>
+        </div>
+      </section>
+
+      <!-- Diagnostics Pane -->
+      <section id="diagnostics" class="config-pane">
+        <div class="pane-header">
+          <h1>Diagnostics & Extension Cache</h1>
+          <p>Troubleshoot connection issues and manage cached drafts stored in Chrome.</p>
+        </div>
+
+        <div class="card">
+          <h2>Offline Mock Mode Toggle</h2>
+          <p class="description">Force the extension to run in Mock Mode. Perfect for presenting designs, testing UI layouts, and validating offline logic.</p>
+          <div class="form-group">
+            <button id="toggle-mock-btn" class="btn btn-secondary">Enable Mock Mode</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Local Cache Management</h2>
+          <p class="description">Delete all locally saved timecard drafts and stored connections to reset the extension state.</p>
+          <div class="form-group">
+            <button id="clear-cache-btn" class="btn btn-dark">Reset Extension & Clear Storage</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
