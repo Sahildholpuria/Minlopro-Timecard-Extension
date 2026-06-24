@@ -141,11 +141,13 @@ function initDOMElements() {
   DOM.mapChildDate = document.getElementById('map-child-date');
   DOM.mapChildHours = document.getElementById('map-child-hours');
   DOM.mapChildDesc = document.getElementById('map-child-desc');
+  DOM.themeToggleBtn = document.getElementById('theme-toggle-btn');
 }
 
 // Initial Setup
 document.addEventListener('DOMContentLoaded', async () => {
   initDOMElements();
+  initTheme();
   setupTabs();
   setupSettingsToggles();
   await loadFieldMappings();
@@ -1769,4 +1771,42 @@ function showToast(message, type = 'info') {
     toast.style.transition = 'all 0.25s ease';
     setTimeout(() => toast.remove(), 250);
   }, 3500);
+}
+
+// Initialize theme from storage
+function initTheme() {
+  chrome.storage.local.get(['theme'], (result) => {
+    const theme = result.theme || 'dark';
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+      updateThemeToggleIcon('light');
+    } else {
+      document.body.classList.remove('light-theme');
+      updateThemeToggleIcon('dark');
+    }
+  });
+
+  if (DOM.themeToggleBtn) {
+    DOM.themeToggleBtn.addEventListener('click', toggleTheme);
+  }
+}
+
+// Toggle light/dark modes
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  const newTheme = isLight ? 'light' : 'dark';
+  chrome.storage.local.set({ theme: newTheme });
+  updateThemeToggleIcon(newTheme);
+}
+
+// Update header toggle icon
+function updateThemeToggleIcon(theme) {
+  if (!DOM.themeToggleBtn) return;
+  if (theme === 'light') {
+    // Show Moon icon (switch to dark)
+    DOM.themeToggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  } else {
+    // Show Sun icon (switch to light)
+    DOM.themeToggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  }
 }
