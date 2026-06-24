@@ -27,6 +27,7 @@ const mapChildRole = document.getElementById('opt-child-role');
 const mapChildDate = document.getElementById('opt-child-date');
 const mapChildHours = document.getElementById('opt-child-hours');
 const mapChildDesc = document.getElementById('opt-child-desc');
+const mapChildNonBillable = document.getElementById('opt-child-non-billable');
 const saveMappingsBtn = document.getElementById('save-mappings-btn');
 
 // Diagnostics Elements
@@ -115,6 +116,7 @@ function loadSettings() {
       mapChildDate.value = mappings.childDate || 'Date__c';
       mapChildHours.value = mappings.childHours || 'Hours__c';
       mapChildDesc.value = mappings.childDesc || 'Task_Description__c';
+      mapChildNonBillable.value = mappings.childNonBillable || 'Non_Billable__c';
     }
 
     // 3. Mock Mode Force
@@ -169,7 +171,8 @@ function saveFieldMappings() {
     childRole: mapChildRole.value.trim(),
     childDate: mapChildDate.value.trim(),
     childHours: mapChildHours.value.trim(),
-    childDesc: mapChildDesc.value.trim()
+    childDesc: mapChildDesc.value.trim(),
+    childNonBillable: mapChildNonBillable.value.trim()
   };
 
   chrome.storage.local.set({ fieldMappings: mappings }, () => {

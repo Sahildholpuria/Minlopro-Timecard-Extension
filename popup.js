@@ -141,6 +141,7 @@ function initDOMElements() {
   DOM.mapChildDate = document.getElementById('map-child-date');
   DOM.mapChildHours = document.getElementById('map-child-hours');
   DOM.mapChildDesc = document.getElementById('map-child-desc');
+  DOM.mapChildNonBillable = document.getElementById('map-child-non-billable');
   DOM.themeToggleBtn = document.getElementById('theme-toggle-btn');
 }
 
@@ -246,7 +247,8 @@ function loadFieldMappings() {
         childRole: 'Project_Role__c',
         childDate: 'Date__c',
         childHours: 'Hours__c',
-        childDesc: 'Task_Description__c'
+        childDesc: 'Task_Description__c',
+        childNonBillable: 'Non_Billable__c'
       }, result.fieldMappings || {});
 
       // Update UI mapping inputs
@@ -262,6 +264,7 @@ function loadFieldMappings() {
       DOM.mapChildDate.value = state.fieldMappings.childDate;
       DOM.mapChildHours.value = state.fieldMappings.childHours;
       DOM.mapChildDesc.value = state.fieldMappings.childDesc;
+      DOM.mapChildNonBillable.value = state.fieldMappings.childNonBillable || 'Non_Billable__c';
 
       if (result.sfSettings) {
         const settings = result.sfSettings;
@@ -810,10 +813,11 @@ async function loadLoggedEntries() {
       });
     }
     
+    const nonBillableField = state.fieldMappings.childNonBillable ? `, ${state.fieldMappings.childNonBillable}` : '';
     const extraFieldsStr = extraRoleFields.length > 0 ? `, ${extraRoleFields.join(', ')}` : '';
     
     // Fetch daily entries
-    const query = `SELECT Id, ${state.fieldMappings.childProject}, ${projectRel}.Name, ${state.fieldMappings.childRole}, ${roleRel}.Name, ${state.fieldMappings.childDate}, ${state.fieldMappings.childHours}, ${state.fieldMappings.childDesc}${extraFieldsStr} FROM ${cObj} WHERE ${state.fieldMappings.childParent} = '${state.selectedTimecardId}'`;
+    const query = `SELECT Id, ${state.fieldMappings.childProject}, ${projectRel}.Name, ${state.fieldMappings.childRole}, ${roleRel}.Name, ${state.fieldMappings.childDate}, ${state.fieldMappings.childHours}, ${state.fieldMappings.childDesc}${nonBillableField}${extraFieldsStr} FROM ${cObj} WHERE ${state.fieldMappings.childParent} = '${state.selectedTimecardId}'`;
     const res = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/query?q=${encodeURIComponent(query)}`, {
       headers: { 'Authorization': `Bearer ${state.sfAccessToken}` }
     });
@@ -853,7 +857,7 @@ async function loadLoggedEntries() {
           Date: entry[state.fieldMappings.childDate],
           Hours: parseFloat(entry[state.fieldMappings.childHours]) || 0.0,
           Description: entry[state.fieldMappings.childDesc] || '',
-          NonBillable: false
+          NonBillable: state.fieldMappings.childNonBillable ? (entry[state.fieldMappings.childNonBillable] === true || entry[state.fieldMappings.childNonBillable] === 'true') : false
         };
       });
 
@@ -878,11 +882,11 @@ function renderLoggedEntriesList(records) {
     return;
   }
 
-  // Grouping mapping: key = project_role_desc
+  // Grouping mapping: key = project_role_desc_nonbillable
   const groups = {};
   
   records.forEach(entry => {
-    const key = `${entry.ProjectId}_${entry.RoleId}_${entry.Description}`;
+    const key = `${entry.ProjectId}_${entry.RoleId}_${entry.Description}_${entry.NonBillable}`;
     if (!groups[key]) {
       groups[key] = {
         projectId: entry.ProjectId,
@@ -890,6 +894,7 @@ function renderLoggedEntriesList(records) {
         roleId: entry.RoleId,
         roleName: entry.RoleName,
         description: entry.Description,
+        nonBillable: entry.NonBillable,
         total: 0.0,
         ids: [] // Store individual record IDs for batch deletion
       };
@@ -904,7 +909,10 @@ function renderLoggedEntriesList(records) {
     
     card.innerHTML = `
       <div class="entry-item-details">
-        <span class="entry-item-title">${g.projectName}</span>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <span class="entry-item-title">${g.projectName}</span>
+          ${g.nonBillable ? `<span class="badge non-billable" style="text-transform: none; font-size: 8px; padding: 1px 4.5px; border-radius: 3px; line-height: 1;">Non-Billable</span>` : ''}
+        </div>
         <span class="entry-item-sub">${g.roleName || 'No Role Specified'}</span>
         ${g.description ? `<span class="entry-item-sub italic">"${g.description}"</span>` : ''}
       </div>
@@ -1004,6 +1012,10 @@ async function saveTimecardEntry() {
           [state.fieldMappings.childHours]: hrs,
           [state.fieldMappings.childDesc]: DOM.entryDescription.value.trim()
         };
+        
+        if (state.fieldMappings.childNonBillable) {
+          record[state.fieldMappings.childNonBillable] = DOM.entryNonBillable.checked;
+        }
         
         if (state.selectedRoleId) {
           record[state.fieldMappings.childRole] = state.selectedRoleId;
@@ -1404,7 +1416,8 @@ function saveFieldMappings() {
     childRole: DOM.mapChildRole.value.trim(),
     childDate: DOM.mapChildDate.value.trim(),
     childHours: DOM.mapChildHours.value.trim(),
-    childDesc: DOM.mapChildDesc.value.trim()
+    childDesc: DOM.mapChildDesc.value.trim(),
+    childNonBillable: DOM.mapChildNonBillable.value.trim()
   };
 
   chrome.storage.local.set({ fieldMappings: mappings }, () => {
@@ -1595,6 +1608,7 @@ function validateAndAlignMappings(cFields) {
   checkField('childDate', 'Date__c', ['date']);
   checkField('childHours', 'Hours__c', ['hour', 'duration', 'qty', 'quantity']);
   checkField('childDesc', 'Task_Description__c', ['desc', 'task', 'note', 'comment', 'detail', 'work', 'summary']);
+  checkField('childNonBillable', 'Non_Billable__c', ['billable', 'non']);
 
   if (mappingsUpdated) {
     chrome.storage.local.set({ fieldMappings: state.fieldMappings }, () => {
@@ -1617,7 +1631,8 @@ function updateUIFieldMapping(key, val) {
     childRole: 'map-child-role',
     childDate: 'map-child-date',
     childHours: 'map-child-hours',
-    childDesc: 'map-child-desc'
+    childDesc: 'map-child-desc',
+    childNonBillable: 'map-child-non-billable'
   };
   
   const id = elementIdMap[key];

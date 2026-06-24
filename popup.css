@@ -767,6 +767,13 @@ textarea.input-flat {
   border: 1px solid var(--btn-bg);
 }
 
+.badge.non-billable {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  text-transform: none;
+}
+
 .empty-state {
   text-align: center;
   padding: 24px 12px;
