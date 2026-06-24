@@ -38,9 +38,9 @@ const MOCK_DATA = {
     Email: 'sahil@mycompany.com'
   },
   timecards: [
-    { Id: 'tc_001', Name: 'Sahil Dholpuria | Week of 2026-06-22', WeekOf: '2026-06-22', Status: 'Draft', TotalHours: 0.0 },
-    { Id: 'tc_002', Name: 'Sahil Dholpuria | Week of 2026-06-15', WeekOf: '2026-06-15', Status: 'Submitted', TotalHours: 40.0 },
-    { Id: 'tc_003', Name: 'Sahil Dholpuria | Week of 2026-06-08', WeekOf: '2026-06-08', Status: 'Approved', TotalHours: 42.5 }
+    { Id: 'tc_001', Name: 'Sahil Dholpuria | Week of 2026-06-22', WeekOf: '2026-06-22', Status: 'Draft', TotalHours: 0.0, Sentiment: '', Feedback: '' },
+    { Id: 'tc_002', Name: 'Sahil Dholpuria | Week of 2026-06-15', WeekOf: '2026-06-15', Status: 'Submitted', TotalHours: 40.0, Sentiment: 'Balanced – I’m good with the workload', Feedback: 'Everything went smoothly.' },
+    { Id: 'tc_003', Name: 'Sahil Dholpuria | Week of 2026-06-08', WeekOf: '2026-06-08', Status: 'Approved', TotalHours: 42.5, Sentiment: 'Ready for more – I have capacity to take on more', Feedback: 'Finished early.' }
   ],
   projects: [
     { Id: 'proj_001', Name: 'Alpha Project - Phase 1' },
@@ -109,6 +109,7 @@ function initDOMElements() {
   DOM.sentimentSubmitContainer = document.getElementById('sentiment-submit-container');
   DOM.sentimentSelect = document.getElementById('sentiment-select');
   DOM.feedbackNotes = document.getElementById('feedback-notes');
+  DOM.saveTimecardBtn = document.getElementById('save-timecard-btn');
   DOM.submitTimecardBtn = document.getElementById('submit-timecard-btn');
   
   // Other tabs
@@ -172,6 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   DOM.cancelEditBtn.addEventListener('click', cancelEditing);
 
   // Submit Timecard click
+  DOM.saveTimecardBtn.addEventListener('click', saveTimecardParentRecord);
   DOM.submitTimecardBtn.addEventListener('click', submitTimecardRecord);
 
   // Refresh history click
@@ -244,7 +246,7 @@ function loadFieldMappings() {
         parentResource: 'Timecard_For__c',
         parentWeek: 'Week_of__c',
         parentStatus: 'Status__c',
-        parentSentiment: 'Workload_Weekly_Sentiment__c',
+        parentSentiment: 'Weekly_Sentiment__c',
         parentFeedback: 'Workload_Feedback__c',
         childParent: 'Timecard__c',
         childProject: 'Project__c',
@@ -352,6 +354,8 @@ async function loadAvailableTimecards() {
       
       if (describeRes.ok) {
         const meta = await describeRes.json();
+        validateAndAlignParentMappings(meta.fields || []);
+        populateSentimentPicklist(meta.fields || []);
         hasOwnerId = meta.fields.some(f => f.name === 'OwnerId');
         
         const lookupField = meta.fields.find(f => f.name === parentResourceField);
@@ -408,7 +412,9 @@ async function loadAvailableTimecards() {
     }
 
     // Query weekly parent Timecards
-    const query = `SELECT Id, Name, ${state.fieldMappings.parentWeek}, ${state.fieldMappings.parentStatus} FROM ${pObj} WHERE ${queryWhere} ORDER BY ${state.fieldMappings.parentWeek} DESC LIMIT 15`;
+    const sentimentField = state.fieldMappings.parentSentiment ? `, ${state.fieldMappings.parentSentiment}` : '';
+    const feedbackField = state.fieldMappings.parentFeedback ? `, ${state.fieldMappings.parentFeedback}` : '';
+    const query = `SELECT Id, Name, ${state.fieldMappings.parentWeek}, ${state.fieldMappings.parentStatus}${sentimentField}${feedbackField} FROM ${pObj} WHERE ${queryWhere} ORDER BY ${state.fieldMappings.parentWeek} DESC LIMIT 15`;
     const url = `${state.sfInstanceUrl}/services/data/v58.0/query?q=${encodeURIComponent(query)}`;
 
     const res = await fetch(url, {
@@ -422,6 +428,8 @@ async function loadAvailableTimecards() {
         Name: r.Name || `Timecard | Week of ${r[state.fieldMappings.parentWeek]}`,
         WeekOf: r[state.fieldMappings.parentWeek],
         Status: r[state.fieldMappings.parentStatus] || 'Draft',
+        Sentiment: state.fieldMappings.parentSentiment ? r[state.fieldMappings.parentSentiment] : '',
+        Feedback: state.fieldMappings.parentFeedback ? r[state.fieldMappings.parentFeedback] : '',
         TotalHours: 0.0 // loaded dynamically
       }));
       
@@ -471,6 +479,27 @@ async function onTimecardSelected() {
   // Find Timecard object details
   state.selectedTimecard = state.availableTimecards.find(tc => tc.Id === selectedId);
   
+  // Populate existing sentiment/feedback if present
+  if (state.fieldMappings.parentSentiment) {
+    DOM.sentimentSelect.value = state.selectedTimecard.Sentiment || '';
+    const parentGp = DOM.sentimentSelect.closest('.form-group');
+    if (parentGp) parentGp.style.display = 'block';
+  } else {
+    DOM.sentimentSelect.value = '';
+    const parentGp = DOM.sentimentSelect.closest('.form-group');
+    if (parentGp) parentGp.style.display = 'none';
+  }
+
+  if (state.fieldMappings.parentFeedback) {
+    DOM.feedbackNotes.value = state.selectedTimecard.Feedback || '';
+    const parentGp = DOM.feedbackNotes.closest('.form-group');
+    if (parentGp) parentGp.style.display = 'block';
+  } else {
+    DOM.feedbackNotes.value = '';
+    const parentGp = DOM.feedbackNotes.closest('.form-group');
+    if (parentGp) parentGp.style.display = 'none';
+  }
+
   // Render labels with actual dates of the week
   updateHoursBubbleDates(state.selectedTimecard.WeekOf);
   
@@ -487,10 +516,12 @@ async function onTimecardSelected() {
   if (state.selectedTimecard.Status === 'Draft') {
     DOM.sentimentSubmitContainer.classList.remove('disabled-panel');
     DOM.saveEntryBtn.disabled = false;
+    DOM.saveTimecardBtn.disabled = false;
     DOM.submitTimecardBtn.disabled = false;
   } else {
     DOM.sentimentSubmitContainer.classList.add('disabled-panel');
     DOM.saveEntryBtn.disabled = true;
+    DOM.saveTimecardBtn.disabled = true;
     DOM.submitTimecardBtn.disabled = true;
     showToast(`Timecard has already been ${state.selectedTimecard.Status}. Read-only mode active.`, 'warning');
   }
@@ -1212,6 +1243,7 @@ async function deleteEntryGroup(ids) {
 }
 
 // Submit Timecard to Salesforce
+// Submit Timecard to Salesforce
 async function submitTimecardRecord() {
   if (state.saving) return;
 
@@ -1220,69 +1252,147 @@ async function submitTimecardRecord() {
     return;
   }
 
-  setSubmitLoading(true);
+  if (confirm('Are you sure you want to submit this timecard for approval? This will lock all entry modifications.')) {
+    setSubmitLoading(true);
+
+    if (state.mockMode) {
+      setTimeout(() => {
+        // Find and update mock status
+        const tc = MOCK_DATA.timecards.find(t => t.Id === state.selectedTimecardId);
+        if (tc) {
+          tc.Status = 'Submitted';
+          tc.TotalHours = parseFloat(DOM.cardTotalHours.innerText);
+          tc.Sentiment = DOM.sentimentSelect.value || '';
+          tc.Feedback = DOM.feedbackNotes.value || '';
+        }
+        
+        // Update badge
+        state.selectedTimecard.Status = 'Submitted';
+        state.selectedTimecard.Sentiment = DOM.sentimentSelect.value || '';
+        state.selectedTimecard.Feedback = DOM.feedbackNotes.value || '';
+        updateStatusBadge('Submitted');
+        
+        // Lock actions
+        DOM.sentimentSubmitContainer.classList.add('disabled-panel');
+        DOM.saveEntryBtn.disabled = true;
+        DOM.saveTimecardBtn.disabled = true;
+        DOM.submitTimecardBtn.disabled = true;
+        
+        setSubmitLoading(false);
+        showToast('Timecard submitted successfully (Mock)!', 'success');
+        onTimecardSelected(); // reload view state
+      }, 1500);
+      return;
+    }
+
+    // Real Salesforce parent Timecard status update
+    try {
+      updateStatus('syncing', 'Submitting Timecard...');
+      const pObj = state.fieldMappings.parentObject || 'Timecard__c';
+
+      const statusPayload = {
+        [state.fieldMappings.parentStatus]: 'Submitted'
+      };
+      if (state.fieldMappings.parentSentiment) {
+        statusPayload[state.fieldMappings.parentSentiment] = DOM.sentimentSelect.value || '';
+      }
+      if (state.fieldMappings.parentFeedback) {
+        statusPayload[state.fieldMappings.parentFeedback] = DOM.feedbackNotes.value || '';
+      }
+
+      const resSubmit = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${pObj}/${state.selectedTimecardId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${state.sfAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(statusPayload)
+      });
+
+      if (!resSubmit.ok) {
+        const bodyText = await resSubmit.text();
+        throw new Error(getSalesforceError(bodyText) || 'Failed to update parent status to Submitted in Salesforce.');
+      }
+
+      setSubmitLoading(false);
+      showToast('Timecard submitted for approval!', 'success');
+      updateStatus('connected', 'Submitted');
+      
+      // Refresh Timecards list & selection
+      await loadAvailableTimecards();
+      DOM.timecardSelect.value = state.selectedTimecardId;
+      await onTimecardSelected();
+    } catch (error) {
+      console.error('Submission error:', error);
+      showToast(`Submission failed: ${error.message}`, 'error');
+      setSubmitLoading(false);
+      updateStatus('connected', 'Connected');
+    }
+  }
+}
+
+// Save parent Timecard details (Sentiment & Feedback) without submitting
+async function saveTimecardParentRecord() {
+  if (state.saving) return;
+
+  setParentSaveLoading(true);
 
   if (state.mockMode) {
     setTimeout(() => {
-      // Find and update mock status
+      // Find and update mock status details
       const tc = MOCK_DATA.timecards.find(t => t.Id === state.selectedTimecardId);
       if (tc) {
-        tc.Status = 'Submitted';
-        tc.TotalHours = parseFloat(DOM.cardTotalHours.innerText);
+        tc.Sentiment = DOM.sentimentSelect.value || '';
+        tc.Feedback = DOM.feedbackNotes.value || '';
       }
       
-      // Update badge
-      state.selectedTimecard.Status = 'Submitted';
-      updateStatusBadge('Submitted');
+      state.selectedTimecard.Sentiment = DOM.sentimentSelect.value || '';
+      state.selectedTimecard.Feedback = DOM.feedbackNotes.value || '';
       
-      // Lock actions
-      DOM.sentimentSubmitContainer.classList.add('disabled-panel');
-      DOM.saveEntryBtn.disabled = true;
-      DOM.submitTimecardBtn.disabled = true;
-      
-      setSubmitLoading(false);
-      showToast('Timecard submitted successfully (Mock)!', 'success');
-      onTimecardSelected(); // reload view state
-    }, 1500);
+      setParentSaveLoading(false);
+      showToast('Timecard details saved successfully (Mock)!', 'success');
+    }, 1000);
     return;
   }
 
-  // Real Salesforce parent Timecard status update
   try {
-    updateStatus('syncing', 'Submitting Timecard...');
+    updateStatus('syncing', 'Saving Timecard details...');
     const pObj = state.fieldMappings.parentObject || 'Timecard__c';
 
-    const statusPayload = {
-      [state.fieldMappings.parentStatus]: 'Submitted',
-      [state.fieldMappings.parentSentiment]: DOM.sentimentSelect.value || '',
-      [state.fieldMappings.parentFeedback]: DOM.feedbackNotes.value || ''
-    };
+    const savePayload = {};
+    if (state.fieldMappings.parentSentiment) {
+      savePayload[state.fieldMappings.parentSentiment] = DOM.sentimentSelect.value || '';
+    }
+    if (state.fieldMappings.parentFeedback) {
+      savePayload[state.fieldMappings.parentFeedback] = DOM.feedbackNotes.value || '';
+    }
 
-    const resSubmit = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${pObj}/${state.selectedTimecardId}`, {
+    const resSave = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${pObj}/${state.selectedTimecardId}`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${state.sfAccessToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(statusPayload)
+      body: JSON.stringify(savePayload)
     });
 
-    if (!resSubmit.ok) {
-      throw new Error('Failed to update parent status to Submitted in Salesforce.');
+    if (!resSave.ok) {
+      const bodyText = await resSave.text();
+      throw new Error(getSalesforceError(bodyText) || 'Failed to update Timecard details in Salesforce.');
     }
 
-    setSubmitLoading(false);
-    showToast('Timecard submitted successfully!', 'success');
-    updateStatus('connected', 'Submitted');
+    setParentSaveLoading(false);
+    showToast('Timecard details saved successfully!', 'success');
+    updateStatus('connected', 'Connected');
     
-    // Refresh Timecards list & selection
+    // Refresh parent values in background
     await loadAvailableTimecards();
     DOM.timecardSelect.value = state.selectedTimecardId;
     await onTimecardSelected();
   } catch (error) {
-    console.error('Submission error:', error);
-    showToast(`Submission failed: ${error.message}`, 'error');
-    setSubmitLoading(false);
+    console.error('Save Timecard details error:', error);
+    showToast(`Save failed: ${error.message}`, 'error');
+    setParentSaveLoading(false);
     updateStatus('connected', 'Connected');
   }
 }
@@ -1303,6 +1413,22 @@ function setSaveLoading(loading) {
   }
 }
 
+function setParentSaveLoading(loading) {
+  state.saving = loading;
+  const btn = DOM.saveTimecardBtn;
+  const spinner = btn.querySelector('.btn-spinner');
+  const span = btn.querySelector('span');
+  if (loading) {
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    span.innerText = 'Saving...';
+  } else {
+    btn.disabled = false;
+    spinner.classList.add('hidden');
+    span.innerText = 'Save Timecard';
+  }
+}
+
 function setSubmitLoading(loading) {
   state.saving = loading;
   const btn = DOM.submitTimecardBtn;
@@ -1315,7 +1441,7 @@ function setSubmitLoading(loading) {
   } else {
     btn.disabled = false;
     spinner.classList.add('hidden');
-    span.innerText = 'Submit Timecard Record';
+    span.innerText = 'Submit for Approval';
   }
 }
 
@@ -1588,7 +1714,7 @@ async function autoDetectMappings() {
     detectedParent.parentStatus = statusField ? statusField.name : 'Status__c';
 
     const sentimentField = pFields.find(f => f.name.toLowerCase().includes('sentiment'));
-    detectedParent.parentSentiment = sentimentField ? sentimentField.name : 'Workload_Weekly_Sentiment__c';
+    detectedParent.parentSentiment = sentimentField ? sentimentField.name : 'Weekly_Sentiment__c';
 
     const cFields = childMeta.fields;
     const detectedChild = {};
@@ -1736,6 +1862,81 @@ function validateAndAlignMappings(cFields) {
   }
 }
 
+// Automatically validate parent mapping fields against object describe results and align if necessary
+// Dynamically populate the sentiment dropdown from Salesforce picklist describe metadata
+function populateSentimentPicklist(pFields) {
+  const sentimentFieldName = state.fieldMappings.parentSentiment || 'Weekly_Sentiment__c';
+  if (!sentimentFieldName) return;
+
+  const field = pFields.find(f => f.name === sentimentFieldName);
+  if (!field || !field.picklistValues || field.picklistValues.length === 0) return;
+
+  const select = DOM.sentimentSelect;
+  if (!select) return;
+
+  // Preserve currently selected value
+  const currentVal = select.value;
+
+  // Rebuild options from live Salesforce picklist values
+  select.innerHTML = '<option value="">-- Select Sentiment --</option>';
+  field.picklistValues
+    .filter(pv => pv.active)
+    .forEach(pv => {
+      const opt = document.createElement('option');
+      opt.value = pv.value;      // Actual API value Salesforce expects
+      opt.textContent = pv.label; // Human-readable label
+      select.appendChild(opt);
+    });
+
+  // Restore previously selected value if still valid
+  if (currentVal) select.value = currentVal;
+
+  console.log(`Populated sentiment picklist with ${field.picklistValues.filter(pv => pv.active).length} values from Salesforce.`);
+}
+
+function validateAndAlignParentMappings(pFields) {
+  if (!pFields || pFields.length === 0) return;
+  
+  let mappingsUpdated = false;
+  
+  const checkParentField = (mappingKey, defaultVal, searchPatterns, optional = false) => {
+    const currentVal = state.fieldMappings[mappingKey] || defaultVal;
+    if (!currentVal && optional) return; // Already cleared/disabled
+
+    const exists = pFields.some(f => f.name === currentVal);
+    if (!exists) {
+      // Find a matching field in pFields based on patterns
+      const found = pFields.find(f => {
+        const lowerName = f.name.toLowerCase();
+        return searchPatterns.some(pat => lowerName.includes(pat));
+      });
+      if (found) {
+        console.log(`Auto-corrected parent mapping for ${mappingKey}: '${currentVal}' -> '${found.name}'`);
+        state.fieldMappings[mappingKey] = found.name;
+        mappingsUpdated = true;
+        updateUIFieldMapping(mappingKey, found.name);
+      } else if (optional) {
+        console.log(`Optional parent field ${mappingKey} ('${currentVal}') not found in org. Disabling mapping.`);
+        state.fieldMappings[mappingKey] = '';
+        mappingsUpdated = true;
+        updateUIFieldMapping(mappingKey, '');
+      }
+    }
+  };
+
+  checkParentField('parentResource', 'Timecard_For__c', ['resource', 'for', 'employee', 'user', 'contact']);
+  checkParentField('parentWeek', 'Week_of__c', ['week', 'start', 'date']);
+  checkParentField('parentStatus', 'Status__c', ['status', 'state']);
+  checkParentField('parentSentiment', 'Weekly_Sentiment__c', ['sentiment', 'workload'], true);
+  checkParentField('parentFeedback', 'Workload_Feedback__c', ['feedback', 'note', 'comment'], true);
+
+  if (mappingsUpdated) {
+    chrome.storage.local.set({ fieldMappings: state.fieldMappings }, () => {
+      console.log('Auto-corrected parent field mappings saved to local storage.');
+    });
+  }
+}
+
 // Helper to update settings UI values when auto-aligned
 function updateUIFieldMapping(key, val) {
   const elementIdMap = {
@@ -1758,6 +1959,22 @@ function updateUIFieldMapping(key, val) {
   if (id) {
     const el = document.getElementById(id);
     if (el) el.value = val;
+  }
+}
+
+// Parse Salesforce REST API errors to extract the actual message
+function getSalesforceError(text) {
+  try {
+    const errs = JSON.parse(text);
+    if (Array.isArray(errs) && errs.length > 0) {
+      return errs[0].message || text;
+    }
+    if (errs && errs.message) {
+      return errs.message;
+    }
+    return text;
+  } catch (e) {
+    return text;
   }
 }
 

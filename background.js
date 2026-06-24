@@ -23,7 +23,7 @@ chrome.runtime.onInstalled.addListener(() => {
           parentResource: 'Timecard_For__c',
           parentWeek: 'Week_of__c',
           parentStatus: 'Status__c',
-          parentSentiment: 'Workload_Weekly_Sentiment__c',
+          parentSentiment: 'Weekly_Sentiment__c',
           parentFeedback: 'Workload_Feedback__c',
           childParent: 'Timecard__c',
           childProject: 'Project__c',

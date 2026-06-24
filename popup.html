@@ -204,11 +204,10 @@
             <div class="custom-select-wrapper">
               <select id="sentiment-select">
                 <option value="">-- Select Sentiment --</option>
-                <option value="Ready for more – I have capacity to take on more">🔵 Ready for more – I have capacity
-                </option>
-                <option value="Balanced – I’m good with the workload">🟢 Balanced – I’m good</option>
-                <option value="Pushing through – Busy but manageable">🟡 Pushing through – Busy but manageable</option>
-                <option value="Overwhelmed – I’m stretched too thin">🔴 Overwhelmed – Stretched too thin</option>
+                <option value="Ready for more - I have capacity to take on more">🔵 Ready for more – I have capacity</option>
+                <option value="Balanced - I'm good with the workload">🟢 Balanced – I'm good</option>
+                <option value="Pushing through - Busy but manageable">🟡 Pushing through – Busy but manageable</option>
+                <option value="Overwhelmed - I'm stretched too thin">🔴 Overwhelmed – Stretched too thin</option>
               </select>
             </div>
           </div>
@@ -219,10 +218,16 @@
               placeholder="Any comments on workload, blockers or highlights..."></textarea>
           </div>
 
-          <button id="submit-timecard-btn" class="btn btn-indigo btn-block" style="margin-top: 12px;">
-            <span>Submit Timecard Record</span>
-            <div class="spinner btn-spinner hidden"></div>
-          </button>
+          <div class="timecard-actions-group" style="display: flex; gap: 8px; margin-top: 12px;">
+            <button id="save-timecard-btn" class="btn btn-secondary btn-block" style="padding: 10px; font-size: 13px;">
+              <span>Save Timecard</span>
+              <div class="spinner btn-spinner hidden"></div>
+            </button>
+            <button id="submit-timecard-btn" class="btn btn-indigo btn-block">
+              <span>Submit for Approval</span>
+              <div class="spinner btn-spinner hidden"></div>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -303,7 +308,7 @@
             </div>
             <div class="form-group">
               <label>Parent: Sentiment</label>
-              <input type="text" id="map-parent-sentiment" value="Workload_Weekly_Sentiment__c">
+              <input type="text" id="map-parent-sentiment" value="Weekly_Sentiment__c">
             </div>
             <div class="form-group">
               <label>Child: Timecard Lookup</label>

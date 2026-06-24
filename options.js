@@ -108,7 +108,7 @@ function loadSettings() {
       mapParentResource.value = mappings.parentResource || 'Timecard_For__c';
       mapParentWeek.value = mappings.parentWeek || 'Week_of__c';
       mapParentStatus.value = mappings.parentStatus || 'Status__c';
-      mapParentSentiment.value = mappings.parentSentiment || 'Workload_Weekly_Sentiment__c';
+      mapParentSentiment.value = mappings.parentSentiment || 'Weekly_Sentiment__c';
       
       mapChildParent.value = mappings.childParent || 'Timecard__c';
       mapChildProject.value = mappings.childProject || 'Project__c';
