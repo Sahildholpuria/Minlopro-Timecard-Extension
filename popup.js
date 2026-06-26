@@ -1285,39 +1285,72 @@ async function submitTimecardRecord() {
       return;
     }
 
-    // Real Salesforce parent Timecard status update
+    // Real Salesforce submission — Status__c is controlled by approval process (read-only for direct writes).
+    // Step 1: Save sentiment + feedback fields (these are writable).
+    // Step 2: Call Process Approvals API to submit the record into the approval process.
     try {
       updateStatus('syncing', 'Submitting Timecard...');
-      const pObj = state.fieldMappings.parentObject || 'Timecard__c';
 
-      const statusPayload = {
-        [state.fieldMappings.parentStatus]: 'Submitted'
+      // Step 1: Pre-save writable fields (sentiment & feedback) if mapped
+      const writablePayload = {};
+      if (state.fieldMappings.parentSentiment && DOM.sentimentSelect.value) {
+        writablePayload[state.fieldMappings.parentSentiment] = DOM.sentimentSelect.value;
+      }
+      if (state.fieldMappings.parentFeedback && DOM.feedbackNotes.value) {
+        writablePayload[state.fieldMappings.parentFeedback] = DOM.feedbackNotes.value;
+      }
+
+      if (Object.keys(writablePayload).length > 0) {
+        const pObj = state.fieldMappings.parentObject || 'Timecard__c';
+        const resPatch = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${pObj}/${state.selectedTimecardId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${state.sfAccessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(writablePayload)
+        });
+        if (!resPatch.ok) {
+          const bodyText = await resPatch.text();
+          throw new Error(getSalesforceError(bodyText) || 'Failed to save Timecard details before submission.');
+        }
+      }
+
+      // Step 2: Submit to Salesforce Approval Process (this sets Status__c via the process)
+      const approvalPayload = {
+        requests: [{
+          actionType: 'Submit',
+          contextId: state.selectedTimecardId,
+          comments: 'Submitted via Minlopro Timecard Extension'
+        }]
       };
-      if (state.fieldMappings.parentSentiment) {
-        statusPayload[state.fieldMappings.parentSentiment] = DOM.sentimentSelect.value || '';
-      }
-      if (state.fieldMappings.parentFeedback) {
-        statusPayload[state.fieldMappings.parentFeedback] = DOM.feedbackNotes.value || '';
-      }
 
-      const resSubmit = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/sobjects/${pObj}/${state.selectedTimecardId}`, {
-        method: 'PATCH',
+      const resApproval = await fetch(`${state.sfInstanceUrl}/services/data/v58.0/process/approvals/`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${state.sfAccessToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(statusPayload)
+        body: JSON.stringify(approvalPayload)
       });
 
-      if (!resSubmit.ok) {
-        const bodyText = await resSubmit.text();
-        throw new Error(getSalesforceError(bodyText) || 'Failed to update parent status to Submitted in Salesforce.');
+      if (!resApproval.ok) {
+        const bodyText = await resApproval.text();
+        throw new Error(getSalesforceError(bodyText) || 'Failed to submit Timecard to the approval process.');
+      }
+
+      const approvalResult = await resApproval.json();
+      // Check if approval submission was successful
+      const approvalItem = Array.isArray(approvalResult) ? approvalResult[0] : approvalResult;
+      if (approvalItem && approvalItem.success === false) {
+        const errMsg = (approvalItem.errors && approvalItem.errors[0] && approvalItem.errors[0].message) || 'Approval submission rejected by Salesforce.';
+        throw new Error(errMsg);
       }
 
       setSubmitLoading(false);
       showToast('Timecard submitted for approval!', 'success');
       updateStatus('connected', 'Submitted');
-      
+
       // Refresh Timecards list & selection
       await loadAvailableTimecards();
       DOM.timecardSelect.value = state.selectedTimecardId;
