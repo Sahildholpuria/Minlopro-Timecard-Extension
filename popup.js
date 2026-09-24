@@ -1,5 +1,36 @@
 // popup.js - Minlopro Timecard Extension Popup Logic (Redesigned Flow)
 
+// Browser environment compatibility shim for local testing & preview
+if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+  const memStore = {};
+  window.chrome = window.chrome || {};
+  window.chrome.storage = {
+    local: {
+      get: (keys, cb) => {
+        const res = {};
+        const keyList = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+        keyList.forEach(k => { res[k] = memStore[k]; });
+        if (cb) setTimeout(() => cb(res), 0);
+        return Promise.resolve(res);
+      },
+      set: (obj, cb) => {
+        Object.assign(memStore, obj);
+        if (cb) setTimeout(cb, 0);
+        return Promise.resolve();
+      },
+      clear: (cb) => {
+        Object.keys(memStore).forEach(k => delete memStore[k]);
+        if (cb) setTimeout(cb, 0);
+        return Promise.resolve();
+      }
+    }
+  };
+  window.chrome.runtime = window.chrome.runtime || {
+    sendMessage: () => Promise.resolve(),
+    onMessage: { addListener: () => {} }
+  };
+}
+
 // State Management
 let state = {
   sfConnected: false,
@@ -77,6 +108,27 @@ const MOCK_DATA = {
   }
 };
 
+// Utilities
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date();
+  const parts = String(dateStr).split('-');
+  if (parts.length === 3) {
+    const [y, m, d] = parts.map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(dateStr);
+}
+
 // DOM Elements Reference Shell
 const DOM = {};
 
@@ -139,6 +191,7 @@ function initDOMElements() {
   DOM.mapParentWeek = document.getElementById('map-parent-week');
   DOM.mapParentStatus = document.getElementById('map-parent-status');
   DOM.mapParentSentiment = document.getElementById('map-parent-sentiment');
+  DOM.mapParentFeedback = document.getElementById('map-parent-feedback');
   DOM.mapChildParent = document.getElementById('map-child-parent');
   DOM.mapChildProject = document.getElementById('map-child-project');
   DOM.mapChildRole = document.getElementById('map-child-role');
@@ -264,6 +317,9 @@ function loadFieldMappings() {
       DOM.mapParentWeek.value = state.fieldMappings.parentWeek;
       DOM.mapParentStatus.value = state.fieldMappings.parentStatus;
       DOM.mapParentSentiment.value = state.fieldMappings.parentSentiment;
+      if (DOM.mapParentFeedback) {
+        DOM.mapParentFeedback.value = state.fieldMappings.parentFeedback || 'Workload_Feedback__c';
+      }
       DOM.mapChildParent.value = state.fieldMappings.childParent;
       DOM.mapChildProject.value = state.fieldMappings.childProject;
       DOM.mapChildRole.value = state.fieldMappings.childRole;
@@ -537,19 +593,23 @@ function updateStatusBadge(status) {
 
 // Render Mon-Sun bubble headers with explicit dates
 function updateHoursBubbleDates(weekStartStr) {
-  const weekStart = new Date(weekStartStr);
-  
+  if (!weekStartStr) return;
+  const baseDate = parseLocalDate(weekStartStr);
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    
-    // Label element
-    const lbl = document.getElementById(`day-lbl-${i}`);
-    if (lbl) {
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const month = d.getMonth() + 1;
-      const date = d.getDate();
-      lbl.innerText = `${dayNames[i]} ${month}/${date}`;
+    const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + i);
+    const month = d.getMonth() + 1;
+    const date = d.getDate();
+
+    const dateSpan = document.getElementById(`day-date-${i}`);
+    if (dateSpan) {
+      dateSpan.innerText = `${month}/${date}`;
+    } else {
+      const lbl = document.getElementById(`day-lbl-${i}`);
+      if (lbl) {
+        lbl.innerText = `${dayNames[i]} ${month}/${date}`;
+      }
     }
   }
 }
@@ -791,6 +851,11 @@ function updateEntrySum() {
     const val = parseFloat(input.value) || 0;
     state.entryHours[index] = val;
     sum += val;
+    if (val > 0) {
+      input.classList.add('has-value');
+    } else {
+      input.classList.remove('has-value');
+    }
   });
   DOM.entryTotalHours.innerText = sum.toFixed(2);
 }
@@ -812,6 +877,7 @@ function clearEntryForm() {
 
   DOM.bubbleInputs.forEach(input => {
     input.value = '';
+    input.classList.remove('has-value');
   });
   state.entryHours = [0, 0, 0, 0, 0, 0, 0];
   DOM.entryTotalHours.innerText = '0.00';
@@ -945,11 +1011,11 @@ function renderLoggedEntriesList(records) {
     card.innerHTML = `
       <div class="entry-item-details">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-          <span class="entry-item-title">${g.projectName}</span>
-          ${g.nonBillable ? `<span class="badge non-billable" style="text-transform: none; font-size: 8px; padding: 1px 4.5px; border-radius: 3px; line-height: 1;">Non-Billable</span>` : ''}
+          <span class="entry-item-title">${escapeHTML(g.projectName)}</span>
+          ${g.nonBillable ? `<span class="badge non-billable">Non-Billable</span>` : ''}
         </div>
-        <span class="entry-item-sub">${g.roleName || 'No Role Specified'}</span>
-        ${g.description ? `<span class="entry-item-sub italic">"${g.description}"</span>` : ''}
+        <span class="entry-item-sub">${escapeHTML(g.roleName || 'No Role Specified')}</span>
+        ${g.description ? `<span class="entry-item-sub italic">"${escapeHTML(g.description)}"</span>` : ''}
       </div>
       <div class="entry-item-actions">
         <span class="entry-item-hours">${g.total.toFixed(2)}h</span>
@@ -1017,7 +1083,7 @@ function startEditingEntryGroup(g) {
   );
 
   groupEntries.forEach(entry => {
-    const entryDate = new Date(entry.Date);
+    const entryDate = parseLocalDate(entry.Date);
     // Find index of day (0 = Mon, 6 = Sun)
     // Since week starts on Monday, map accordingly
     let dayIdx = entryDate.getDay() - 1;
@@ -1033,6 +1099,11 @@ function startEditingEntryGroup(g) {
     const dayIdx = parseInt(input.dataset.day);
     const hrs = state.entryHours[dayIdx];
     input.value = hrs > 0 ? hrs : '';
+    if (hrs > 0) {
+      input.classList.add('has-value');
+    } else {
+      input.classList.remove('has-value');
+    }
   });
 
   // Update sum indicator
@@ -1076,7 +1147,7 @@ async function saveTimecardEntry() {
   }
 
   setSaveLoading(true);
-  const weekStart = new Date(state.selectedTimecard.WeekOf);
+  const weekStart = parseLocalDate(state.selectedTimecard.WeekOf);
 
   if (state.mockMode) {
     // Save to local mock lists
@@ -1093,8 +1164,7 @@ async function saveTimecardEntry() {
       
       state.entryHours.forEach((hrs, dayIdx) => {
         if (hrs > 0) {
-          const entryDate = new Date(weekStart);
-          entryDate.setDate(weekStart.getDate() + dayIdx);
+          const entryDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + dayIdx);
           
           MOCK_DATA.entries[state.selectedTimecardId].push({
             Id: 'e_mock_' + Math.random().toString(36).substr(2, 9),
@@ -1144,8 +1214,7 @@ async function saveTimecardEntry() {
     const entryRecords = [];
     state.entryHours.forEach((hrs, dayIdx) => {
       if (hrs > 0) {
-        const entryDate = new Date(weekStart);
-        entryDate.setDate(weekStart.getDate() + dayIdx);
+        const entryDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + dayIdx);
         
         const record = {
           attributes: { type: cObj, referenceId: `ref_${dayIdx}` },
@@ -1688,7 +1757,7 @@ function saveFieldMappings() {
     parentWeek: DOM.mapParentWeek.value.trim(),
     parentStatus: DOM.mapParentStatus.value.trim(),
     parentSentiment: DOM.mapParentSentiment.value.trim(),
-    parentFeedback: 'Workload_Feedback__c',
+    parentFeedback: DOM.mapParentFeedback ? DOM.mapParentFeedback.value.trim() : 'Workload_Feedback__c',
     childParent: DOM.mapChildParent.value.trim(),
     childProject: DOM.mapChildProject.value.trim(),
     childRole: DOM.mapChildRole.value.trim(),
@@ -1770,10 +1839,14 @@ async function autoDetectMappings() {
     const descField = cFields.find(f => f.name.toLowerCase().includes('desc') || f.name.toLowerCase().includes('task') || f.name.toLowerCase().includes('note'));
     detectedChild.childDesc = descField ? descField.name : 'Task_Description__c';
 
+    const feedbackField = pFields.find(f => f.name.toLowerCase().includes('feedback') || f.name.toLowerCase().includes('workload'));
+    detectedParent.parentFeedback = feedbackField ? feedbackField.name : 'Workload_Feedback__c';
+
     DOM.mapParentResource.value = detectedParent.parentResource;
     DOM.mapParentWeek.value = detectedParent.parentWeek;
     DOM.mapParentStatus.value = detectedParent.parentStatus;
     DOM.mapParentSentiment.value = detectedParent.parentSentiment;
+    if (DOM.mapParentFeedback) DOM.mapParentFeedback.value = detectedParent.parentFeedback;
     
     DOM.mapChildParent.value = detectedChild.childParent;
     DOM.mapChildProject.value = detectedChild.childProject;
@@ -1979,6 +2052,7 @@ function updateUIFieldMapping(key, val) {
     parentWeek: 'map-parent-week',
     parentStatus: 'map-parent-status',
     parentSentiment: 'map-parent-sentiment',
+    parentFeedback: 'map-parent-feedback',
     childParent: 'map-child-parent',
     childProject: 'map-child-project',
     childRole: 'map-child-role',
@@ -2105,20 +2179,20 @@ async function loadHistory() {
 function renderHistoryItems(records) {
   DOM.historyList.innerHTML = '';
   records.forEach(item => {
-    const week = new Date(item.WeekOf);
+    const week = parseLocalDate(item.WeekOf);
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     const dateStr = week.toLocaleDateString('en-US', options);
-    const statusClass = item.Status.toLowerCase();
+    const statusClass = (item.Status || '').toLowerCase();
     
     const cardHtml = `
       <div class="history-card">
         <div class="history-details">
           <h4>Week of ${dateStr}</h4>
-          <p>Status: ${item.Status}</p>
+          <p>Status: ${escapeHTML(item.Status)}</p>
         </div>
         <div class="history-meta">
           <div class="history-hours">${parseFloat(item.TotalHours).toFixed(2)} hrs</div>
-          <span class="badge ${statusClass}">${item.Status}</span>
+          <span class="badge ${statusClass}">${escapeHTML(item.Status)}</span>
         </div>
       </div>
     `;
@@ -2146,12 +2220,12 @@ function showToast(message, type = 'info') {
     icon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
   }
 
-  toast.innerHTML = `${icon} <span>${message}</span>`;
+  toast.innerHTML = `${icon} <span>${escapeHTML(message)}</span>`;
   DOM.toastContainer.appendChild(toast);
 
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateY(8px)';
+    toast.style.transform = 'translateY(-10px)';
     toast.style.transition = 'all 0.25s ease';
     setTimeout(() => toast.remove(), 250);
   }, 3500);

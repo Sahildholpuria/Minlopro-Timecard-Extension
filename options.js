@@ -1,5 +1,36 @@
 // options.js - Minlopro Timecard Extension Options Dashboard
 
+// Browser environment compatibility shim for local testing & preview
+if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+  const memStore = {};
+  window.chrome = window.chrome || {};
+  window.chrome.storage = {
+    local: {
+      get: (keys, cb) => {
+        const res = {};
+        const keyList = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+        keyList.forEach(k => { res[k] = memStore[k]; });
+        if (cb) setTimeout(() => cb(res), 0);
+        return Promise.resolve(res);
+      },
+      set: (obj, cb) => {
+        Object.assign(memStore, obj);
+        if (cb) setTimeout(cb, 0);
+        return Promise.resolve();
+      },
+      clear: (cb) => {
+        Object.keys(memStore).forEach(k => delete memStore[k]);
+        if (cb) setTimeout(cb, 0);
+        return Promise.resolve();
+      }
+    }
+  };
+  window.chrome.runtime = window.chrome.runtime || {
+    sendMessage: () => Promise.resolve(),
+    onMessage: { addListener: () => {} }
+  };
+}
+
 // DOM Pane Elements
 const navItems = document.querySelectorAll('.nav-item');
 const panes = document.querySelectorAll('.config-pane');
@@ -20,6 +51,7 @@ const mapParentResource = document.getElementById('opt-parent-resource');
 const mapParentWeek = document.getElementById('opt-parent-week');
 const mapParentStatus = document.getElementById('opt-parent-status');
 const mapParentSentiment = document.getElementById('opt-parent-sentiment');
+const mapParentFeedback = document.getElementById('opt-parent-feedback');
 
 const mapChildParent = document.getElementById('opt-child-parent');
 const mapChildProject = document.getElementById('opt-child-project');
@@ -30,10 +62,12 @@ const mapChildDesc = document.getElementById('opt-child-desc');
 const mapChildNonBillable = document.getElementById('opt-child-non-billable');
 const saveMappingsBtn = document.getElementById('save-mappings-btn');
 
-// Diagnostics Elements
+// Diagnostics & Theme Elements
 const toggleMockBtn = document.getElementById('toggle-mock-btn');
 const clearCacheBtn = document.getElementById('clear-cache-btn');
 const toastContainer = document.getElementById('toast-container');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const themeBtnLabel = document.getElementById('theme-btn-label');
 
 // State
 let mockModeEnabled = false;
@@ -48,6 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
   saveMappingsBtn.addEventListener('click', saveFieldMappings);
   toggleMockBtn.addEventListener('click', toggleMockMode);
   clearCacheBtn.addEventListener('click', clearExtensionStorage);
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+  }
 });
 
 // Sidebar Navigation Pane switching
@@ -82,7 +119,10 @@ function setupConnectionToggles() {
 
 // Load Settings from Chrome Storage
 function loadSettings() {
-  chrome.storage.local.get(['sfSettings', 'fieldMappings', 'mockModeForce'], (result) => {
+  chrome.storage.local.get(['sfSettings', 'fieldMappings', 'mockModeForce', 'theme'], (result) => {
+    // 0. Theme
+    initTheme(result.theme || 'dark');
+
     // 1. Connection
     if (result.sfSettings) {
       const settings = result.sfSettings;
@@ -109,6 +149,9 @@ function loadSettings() {
       mapParentWeek.value = mappings.parentWeek || 'Week_of__c';
       mapParentStatus.value = mappings.parentStatus || 'Status__c';
       mapParentSentiment.value = mappings.parentSentiment || 'Weekly_Sentiment__c';
+      if (mapParentFeedback) {
+        mapParentFeedback.value = mappings.parentFeedback || 'Workload_Feedback__c';
+      }
       
       mapChildParent.value = mappings.childParent || 'Timecard__c';
       mapChildProject.value = mappings.childProject || 'Project__c';
@@ -165,7 +208,7 @@ function saveFieldMappings() {
     parentWeek: mapParentWeek.value.trim(),
     parentStatus: mapParentStatus.value.trim(),
     parentSentiment: mapParentSentiment.value.trim(),
-    parentFeedback: 'Workload_Feedback__c',
+    parentFeedback: mapParentFeedback ? mapParentFeedback.value.trim() : 'Workload_Feedback__c',
     childParent: mapChildParent.value.trim(),
     childProject: mapChildProject.value.trim(),
     childRole: mapChildRole.value.trim(),
@@ -178,6 +221,26 @@ function saveFieldMappings() {
   chrome.storage.local.set({ fieldMappings: mappings }, () => {
     showToast('Field mappings updated successfully!', 'success');
   });
+}
+
+// Theme Handling
+function initTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+    if (themeBtnLabel) themeBtnLabel.innerText = 'Dark Theme';
+  } else {
+    document.body.classList.remove('light-theme');
+    if (themeBtnLabel) themeBtnLabel.innerText = 'Light Theme';
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  const newTheme = isLight ? 'light' : 'dark';
+  chrome.storage.local.set({ theme: newTheme });
+  if (themeBtnLabel) {
+    themeBtnLabel.innerText = isLight ? 'Dark Theme' : 'Light Theme';
+  }
 }
 
 // Toggle Mock Mode

@@ -24,8 +24,7 @@
           <span class="status-dot disconnected"></span>
           <span class="status-text">Disconnected</span>
         </div>
-        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme"
-          style="display: inline-flex; align-items: center; justify-content: center; height: 24px; width: 24px; padding: 0; color: var(--text-muted);">
+        <button id="theme-toggle-btn" class="icon-btn theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="feather feather-sun">
@@ -123,15 +122,15 @@
             </div>
           </div>
 
-          <div class="form-grid">
-            <div class="form-group">
+          <div class="entry-desc-grid">
+            <div class="form-group desc-group">
               <label for="entry-description">Task Description</label>
               <input type="text" id="entry-description" class="input-flat" placeholder="What task did you work on?">
             </div>
-            <div class="form-group flex-row-align">
-              <label class="checkbox-label">
+            <div class="form-group non-billable-group">
+              <label class="checkbox-label" for="entry-non-billable">
                 <input type="checkbox" id="entry-non-billable">
-                Non Billable
+                <span>Non-Billable</span>
               </label>
             </div>
           </div>
@@ -141,31 +140,31 @@
             <label class="section-label">Log Weekly Hours</label>
             <div class="bubbles-row">
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-0">Mon</span>
+                <span class="bubble-label" id="day-lbl-0"><span class="day-name">Mon</span><span class="day-date" id="day-date-0">-</span></span>
                 <input type="number" class="bubble-input" data-day="0" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-1">Tue</span>
+                <span class="bubble-label" id="day-lbl-1"><span class="day-name">Tue</span><span class="day-date" id="day-date-1">-</span></span>
                 <input type="number" class="bubble-input" data-day="1" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-2">Wed</span>
+                <span class="bubble-label" id="day-lbl-2"><span class="day-name">Wed</span><span class="day-date" id="day-date-2">-</span></span>
                 <input type="number" class="bubble-input" data-day="2" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-3">Thu</span>
+                <span class="bubble-label" id="day-lbl-3"><span class="day-name">Thu</span><span class="day-date" id="day-date-3">-</span></span>
                 <input type="number" class="bubble-input" data-day="3" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-4">Fri</span>
+                <span class="bubble-label" id="day-lbl-4"><span class="day-name">Fri</span><span class="day-date" id="day-date-4">-</span></span>
                 <input type="number" class="bubble-input" data-day="4" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-5">Sat</span>
+                <span class="bubble-label" id="day-lbl-5"><span class="day-name">Sat</span><span class="day-date" id="day-date-5">-</span></span>
                 <input type="number" class="bubble-input" data-day="5" min="0" max="24" step="0.25" placeholder="-">
               </div>
               <div class="bubble-input-group">
-                <span class="bubble-label" id="day-lbl-6">Sun</span>
+                <span class="bubble-label" id="day-lbl-6"><span class="day-name">Sun</span><span class="day-date" id="day-date-6">-</span></span>
                 <input type="number" class="bubble-input" data-day="6" min="0" max="24" step="0.25" placeholder="-">
               </div>
             </div>
@@ -176,12 +175,12 @@
             </div>
           </div>
 
-          <div class="entry-actions-group" style="display: flex; gap: 8px; margin-top: 10px;">
+          <div class="entry-actions-group">
             <button id="save-entry-btn" class="btn btn-primary btn-block">
               <span>Save Timecard Entry</span>
               <div class="spinner btn-spinner hidden"></div>
             </button>
-            <button id="cancel-edit-btn" class="btn btn-secondary hidden" style="flex-shrink: 0; min-width: 80px;">
+            <button id="cancel-edit-btn" class="btn btn-secondary cancel-edit-btn hidden">
               Cancel
             </button>
           </div>
@@ -218,8 +217,8 @@
               placeholder="Any comments on workload, blockers or highlights..."></textarea>
           </div>
 
-          <div class="timecard-actions-group" style="display: flex; gap: 8px; margin-top: 12px;">
-            <button id="save-timecard-btn" class="btn btn-secondary btn-block" style="padding: 10px; font-size: 13px;">
+          <div class="timecard-actions-group">
+            <button id="save-timecard-btn" class="btn btn-secondary btn-block">
               <span>Save Timecard</span>
               <div class="spinner btn-spinner hidden"></div>
             </button>
@@ -247,7 +246,6 @@
       <!-- Tab 3: Settings -->
       <section id="settings" class="tab-pane">
         <h2>Salesforce Connection</h2>
-
         <div class="settings-card">
           <h3>Authentication Method</h3>
           <div class="toggle-group">
@@ -285,59 +283,67 @@
             <button id="auto-detect-mappings-btn" class="btn btn-secondary btn-xs">Auto-Detect</button>
           </div>
 
-          <div class="form-grid">
+          <div class="settings-group-header">Parent Timecard Fields</div>
+          <div class="settings-grid">
             <div class="form-group">
-              <label>Parent SObject</label>
+              <label for="map-parent-object">Parent SObject API Name</label>
               <input type="text" id="map-parent-object" value="Timecard__c">
             </div>
             <div class="form-group">
-              <label>Child SObject</label>
-              <input type="text" id="map-child-object" value="Timecard_Entry__c">
-            </div>
-            <div class="form-group">
-              <label>Parent: Resource Lookup</label>
+              <label for="map-parent-resource">Resource Lookup Field</label>
               <input type="text" id="map-parent-resource" value="Timecard_For__c">
             </div>
             <div class="form-group">
-              <label>Parent: Week Start</label>
+              <label for="map-parent-week">Week Start Date Field</label>
               <input type="text" id="map-parent-week" value="Week_of__c">
             </div>
             <div class="form-group">
-              <label>Parent: Status</label>
+              <label for="map-parent-status">Status Field</label>
               <input type="text" id="map-parent-status" value="Status__c">
             </div>
             <div class="form-group">
-              <label>Parent: Sentiment</label>
+              <label for="map-parent-sentiment">Sentiment Field</label>
               <input type="text" id="map-parent-sentiment" value="Weekly_Sentiment__c">
             </div>
             <div class="form-group">
-              <label>Child: Timecard Lookup</label>
+              <label for="map-parent-feedback">Workload Feedback Field</label>
+              <input type="text" id="map-parent-feedback" value="Workload_Feedback__c">
+            </div>
+          </div>
+
+          <div class="settings-group-header">Child Entry Fields</div>
+          <div class="settings-grid">
+            <div class="form-group">
+              <label for="map-child-object">Child SObject API Name</label>
+              <input type="text" id="map-child-object" value="Timecard_Entry__c">
+            </div>
+            <div class="form-group">
+              <label for="map-child-parent">Parent Lookup Field</label>
               <input type="text" id="map-child-parent" value="Timecard__c">
             </div>
             <div class="form-group">
-              <label>Child: Project Lookup</label>
+              <label for="map-child-project">Project Lookup Field</label>
               <input type="text" id="map-child-project" value="Project__c">
             </div>
             <div class="form-group">
-              <label>Child: Role Lookup</label>
+              <label for="map-child-role">Project Role Lookup Field</label>
               <input type="text" id="map-child-role" value="Project_Role__c">
             </div>
             <div class="form-group">
-              <label>Child: Date</label>
+              <label for="map-child-date">Date Field</label>
               <input type="text" id="map-child-date" value="Date__c">
             </div>
             <div class="form-group">
-              <label>Child: Hours</label>
+              <label for="map-child-hours">Hours Logged Field</label>
               <input type="text" id="map-child-hours" value="Hours__c">
             </div>
             <div class="form-group">
-              <label>Child: Description</label>
+              <label for="map-child-desc">Task Description Field</label>
               <input type="text" id="map-child-desc" value="Task_Description__c">
             </div>
             <div class="form-group">
-              <label>Child: Non Billable</label>
+              <label for="map-child-non-billable">Non Billable Field</label>
               <input type="text" id="map-child-non-billable" value="Non_Billable__c">
-            </div>
           </div>
           <button id="save-mappings-btn" class="btn btn-secondary btn-block">Save Field Mappings</button>
         </div>
