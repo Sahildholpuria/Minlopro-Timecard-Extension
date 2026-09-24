@@ -52,6 +52,7 @@ const mapParentWeek = document.getElementById('opt-parent-week');
 const mapParentStatus = document.getElementById('opt-parent-status');
 const mapParentSentiment = document.getElementById('opt-parent-sentiment');
 const mapParentFeedback = document.getElementById('opt-parent-feedback');
+const mapAssignmentReport = document.getElementById('opt-assignment-report');
 
 const mapChildParent = document.getElementById('opt-child-parent');
 const mapChildProject = document.getElementById('opt-child-project');
@@ -152,6 +153,9 @@ function loadSettings() {
       if (mapParentFeedback) {
         mapParentFeedback.value = mappings.parentFeedback || 'Workload_Feedback__c';
       }
+      if (mapAssignmentReport) {
+        mapAssignmentReport.value = mappings.assignmentReport || 'P-RAP Resource Assignment by Pro';
+      }
       
       mapChildParent.value = mappings.childParent || 'Timecard__c';
       mapChildProject.value = mappings.childProject || 'Project__c';
@@ -209,6 +213,7 @@ function saveFieldMappings() {
     parentStatus: mapParentStatus.value.trim(),
     parentSentiment: mapParentSentiment.value.trim(),
     parentFeedback: mapParentFeedback ? mapParentFeedback.value.trim() : 'Workload_Feedback__c',
+    assignmentReport: mapAssignmentReport ? mapAssignmentReport.value.trim() : 'P-RAP Resource Assignment by Pro',
     childParent: mapChildParent.value.trim(),
     childProject: mapChildProject.value.trim(),
     childRole: mapChildRole.value.trim(),

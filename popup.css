@@ -1127,3 +1127,281 @@ body.light-theme .badge.submitted {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Weekly Assigned Hours Card (P-RAP Report) */
+.assigned-hours-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-flat);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-neon);
+  position: relative;
+  transition: var(--transition);
+}
+
+.assigned-hours-card:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+body.light-theme .assigned-hours-card:hover {
+  border-color: rgba(1, 118, 211, 0.3);
+}
+
+.assigned-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.assigned-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.assigned-title-group h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--accent-blue);
+  margin-bottom: 0;
+}
+
+.report-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-blue);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+body.light-theme .report-tag {
+  background: rgba(1, 118, 211, 0.1);
+  color: var(--accent-blue);
+  border-color: rgba(1, 118, 211, 0.2);
+}
+
+.assigned-user-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--text-muted);
+  border: 1px solid var(--border-flat);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+}
+
+body.light-theme .assigned-user-tag {
+  background: rgba(1, 118, 211, 0.06);
+  color: var(--text-muted);
+  border-color: var(--border-flat);
+}
+
+.assigned-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.assigned-header-actions .icon-btn {
+  padding: 4px;
+  height: 24px;
+  width: 24px;
+}
+
+.assigned-summary-bar {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-flat);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.allocation-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.allocation-meta .meta-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.allocation-meta strong {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.progress-track {
+  width: 100%;
+  height: 5px;
+  background: var(--bg-primary);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-flat);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent-gradient);
+  transition: width 0.35s ease-out, background 0.35s ease;
+}
+
+.progress-fill.completed {
+  background: var(--success);
+}
+
+.progress-fill.over {
+  background: var(--warning);
+}
+
+.assigned-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.assigned-project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-flat);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.assigned-project-item:hover {
+  border-color: var(--accent-blue);
+  background: var(--bubble-active-bg);
+  transform: translateX(2px);
+}
+
+.assigned-project-item.selected {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+}
+
+.assigned-proj-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.assigned-proj-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigned-proj-sub {
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.assigned-proj-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.assigned-proj-hours {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.assigned-proj-hours span.logged {
+  color: var(--accent-blue);
+}
+
+.assigned-proj-hours span.completed {
+  color: var(--success);
+}
+
+.assigned-proj-track {
+  width: 55px;
+  height: 4px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.assigned-proj-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 2px;
+  transition: width 0.35s ease;
+}
+
+.assigned-proj-fill.completed {
+  background: var(--success);
+}
+
+.assigned-proj-fill.over {
+  background: var(--warning);
+}
+
+.empty-state-sm {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 10px 8px;
+}
+
+.assigned-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 12px;
+}
+
+/* Collapsed state for Assigned Hours card */
+.assigned-hours-card.collapsed .assigned-summary-bar,
+.assigned-hours-card.collapsed .assigned-projects-list {
+  display: none;
+}
+
+.assigned-hours-card.collapsed {
+  padding-bottom: 10px;
+}
+
+.assigned-hours-card.collapsed #toggle-assigned-btn svg {
+  transform: rotate(-90deg);
+}
+

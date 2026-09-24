@@ -30,7 +30,9 @@ chrome.runtime.onInstalled.addListener(() => {
           childRole: 'Project_Role__c',
           childDate: 'Date__c',
           childHours: 'Hours__c',
-          childDesc: 'Task_Description__c'
+          childDesc: 'Task_Description__c',
+          childNonBillable: 'Non_Billable__c',
+          assignmentReport: 'P-RAP Resource Assignment by Pro'
         }
       });
     }
